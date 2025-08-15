@@ -14,6 +14,11 @@ class World:
         [1, 1, 1]
     ]
 
+    # N = same col, +1 row
+    # S = same col, -1 row
+    # E = same row, +1 col
+    # W = same row, -1 col
+
     # 2, 3
 
     worldSize = [len(world[0]), len(world)]
@@ -33,7 +38,7 @@ class Person:
         self.description = description
 
     def getPosition(self):
-        pass
+        return self.position
 
     def setPosition(self, position: List[float]):
         if len(position) != 2: # 2D coordinates
@@ -64,12 +69,24 @@ class Person:
         pass
 
     def act(self, action: str):
-        if action.split("(")[0] == "move":
+        action = action.replace("action =", "")
+        print(f"New action {action}")
+        print(action.split("("))
+        if action.split("(")[0].replace(" ","") == "move":
             direction = action.split("(")[1].replace(")","")
             print(direction)
-
-
-    actions = ["move(north/east/south/west)", "perceive", "nothing"]
+            position = self.getPosition()
+            print(f"Position: {position}")
+            if direction == "north":
+                self.setPosition([position[0], position[1] + 1])
+            elif direction == "south":
+                self.setPosition([position[0], position[1] - 1])
+            elif direction == "east":
+                self.setPosition([position[0] + 1, position[1]])
+            elif direction == "west":
+                self.setPosition([position[0] - 1, position[1]])
+    # nothing, say(message)
+    actions = ["move(north/east/south/west"]
 
 
 def main():
@@ -81,6 +98,8 @@ def main():
 
     print("Creating base population...")
     test_person_1 = Person("Jeff", 27, [1,3], world, "Tacky yet mindful man that enjoys playing golf and understanding the world.")
+
+    population = [test_person_1]
     print("Base population created...")
 
     print("Simulation running...")
@@ -88,11 +107,17 @@ def main():
     simulacra_iteration = 1
     while True:
         print(f"Iteration {simulacra_iteration}")
-        response: str = (ollama.generate(model='llama3', prompt=(test_person_1.getModelCard() + f"You have the following options available to you: {test_person_1.actions}. Respond with one and only one action in this format: action = x"))['response'])
-        print(response)
-        if response.find("move"):
-            test_person_1.act(response)
+        for person in population:
+            print("--ITER--")
+            print(person.getPosition())
+            response: str = (ollama.generate(model='llama3', prompt=(person.getModelCard() + f"You have the following options available to you: {person.actions}. As {person.name}, please respond with and only with an action and supported arguments, AND NOTHING ELSE. For example: move(east)"))['response'])
+            print(response)
+            if response.find("move") != -1:
+                person.act(response)
+            elif response.find("nothing") != -1:
+                pass
         time.sleep(1)
+        simulacra_iteration += 1
 
 if __name__ == "__main__":
     main()
